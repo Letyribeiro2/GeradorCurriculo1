@@ -1,0 +1,1775 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Currículos Profissionais</title>
+
+    <!-- Bibliotecas Obrigatórias -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        /* Variáveis de Tema (Light Mode Default) */
+        :root {
+            --bg-color: #f5f5f5;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --primary: #1e3a5f;
+            --primary-hover: #152b47;
+            --danger: #dc3545;
+            --border: #dddddd;
+            --input-bg: #ffffff;
+            --success: #28a745;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Dark Mode Automático */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #121212;
+                --card-bg: #1e1e1e;
+                --text-main: #e0e0e0;
+                --text-muted: #a0a0a0;
+                --primary: #4a90e2;
+                /* Azul mais suave para contraste */
+                --primary-hover: #357abd;
+                --border: #333333;
+                --input-bg: #2d2d2d;
+                --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            }
+        }
+
+        /* Estilos Globais */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        /* Container e Estrutura Principal */
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        /* Progresso */
+        .progress-container {
+            margin-bottom: 20px;
+        }
+
+        .progress-text {
+            font-size: 0.9em;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .progress-bar-bg {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--success);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* Seções Colapsáveis */
+        details {
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            background: var(--card-bg);
+        }
+
+        summary {
+            padding: 15px;
+            background-color: var(--input-bg);
+            cursor: pointer;
+            font-weight: bold;
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--primary);
+            user-select: none;
+        }
+
+        summary::-webkit-details-marker {
+            display: none;
+        }
+
+        summary::after {
+            content: '▼';
+            font-size: 0.8em;
+            transition: transform 0.2s;
+        }
+
+        details[open] summary::after {
+            transform: rotate(180deg);
+        }
+
+        details>div {
+            padding: 15px;
+            border-top: 1px solid var(--border);
+        }
+
+        /* Grid */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 600px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Elementos de Formulário */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="number"],
+        input[type="month"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background-color: var(--input-bg);
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 1em;
+            transition: border-color 0.2s;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .input-error {
+            border-color: var(--danger) !important;
+            background-color: rgba(220, 53, 69, 0.05);
+        }
+
+        .error-msg {
+            color: var(--danger);
+            font-size: 0.8em;
+            margin-top: 5px;
+            display: block;
+            min-height: 1.2em;
+        }
+
+        .char-counter {
+            font-size: 0.8em;
+            color: var(--text-muted);
+            text-align: right;
+            margin-top: 5px;
+            display: block;
+        }
+
+        /* Upload de Foto */
+        .photo-upload-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .photo-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: var(--border);
+            object-fit: cover;
+            display: none;
+            border: 2px solid var(--primary);
+        }
+
+        .photo-placeholder {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: var(--input-bg);
+            border: 2px dashed var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 0.8em;
+            text-align: center;
+        }
+
+        /* Botões */
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 15px;
+            font-weight: 600;
+            font-size: 0.9em;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px;
+            font-size: 1.1em;
+            width: 100%;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(30, 58, 95, 0.1);
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+            padding: 6px 12px;
+            font-size: 0.85em;
+        }
+
+        .btn-danger:hover {
+            opacity: 0.9;
+        }
+
+        .btn-outline-danger {
+            background-color: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+
+        .btn-outline-danger:hover {
+            background-color: rgba(220, 53, 69, 0.1);
+        }
+
+        .actions {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Listas Dinâmicas (Formação/Experiência) */
+        .dynamic-item {
+            border-left: 3px solid var(--primary);
+            padding-left: 15px;
+            margin-bottom: 20px;
+            position: relative;
+            background: var(--bg-color);
+            padding: 15px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .item-title {
+            font-weight: bold;
+            color: var(--primary);
+            margin: 0;
+        }
+
+        /* Sistema de Tags (Habilidades) */
+        .tags-container {
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px;
+            background-color: var(--input-bg);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            min-height: 46px;
+            align-items: center;
+            cursor: text;
+        }
+
+        .tags-container.input-error {
+            border-color: var(--danger);
+        }
+
+        .tag {
+            background-color: var(--primary);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tag-remove {
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .tag-remove:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .tags-input {
+            border: none;
+            outline: none;
+            background: transparent;
+            flex-grow: 1;
+            color: var(--text-main);
+            font-size: 1em;
+            min-width: 120px;
+            padding: 2px;
+        }
+
+        .suggestions {
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            border-radius: 4px;
+            max-height: 150px;
+            overflow-y: auto;
+            position: absolute;
+            z-index: 10;
+            width: calc(100% - 30px);
+            box-shadow: var(--shadow);
+            display: none;
+        }
+
+        .suggestion-item {
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .suggestion-item:hover {
+            background-color: var(--bg-color);
+            color: var(--primary);
+        }
+
+        /* Overlay de Loading */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        #loading-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border-left-color: #ffffff;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ==================================================================== */
+        /* ESTRUTURA DO PDF (Oculto na tela, usado pelo html2canvas)            */
+        /* ==================================================================== */
+        /* ==================================================================== */
+        /* ESTRUTURA DO PDF (Oculto na tela, usado pelo html2canvas)            */
+        /* ==================================================================== */
+        #cv-preview-wrapper {
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            width: 794px;
+            /* A4 em 96 DPI */
+        }
+
+        .cv-page {
+            width: 210mm;
+            min-height: 297mm;
+            background: #ffffff;
+            color: #333333;
+            font-family: 'Inter', 'Helvetica', Arial, sans-serif;
+            display: flex;
+            box-sizing: border-box;
+        }
+
+        /* Sidebar */
+        .cv-sidebar {
+            width: 75mm;
+            background-color: #32373c;
+            color: #ffffff;
+            padding: 15mm 8mm;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .cv-photo-pdf {
+            width: 45mm;
+            height: 45mm;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #ffffff;
+            margin: 0 auto 10px auto;
+            display: none;
+        }
+
+        .sidebar-section {
+            margin-bottom: 15px;
+        }
+
+        .sidebar-title {
+            font-size: 10pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .sidebar-text {
+            font-size: 8.5pt;
+            line-height: 1.5;
+            color: #e0e0e0;
+            text-align: justify;
+        }
+
+        .sidebar-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 8.5pt;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .sidebar-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        /* Main Content */
+        .cv-main {
+            flex: 1;
+            padding: 15mm 12mm;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .cv-header-new {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .header-left {
+            flex: 1;
+        }
+
+        .header-right {
+            text-align: right;
+            font-size: 8.5pt;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            color: #555;
+        }
+
+        .contact-item svg {
+            color: #32373c;
+        }
+
+        .cv-name {
+            font-size: 26pt;
+            font-weight: 800;
+            color: #32373c;
+            margin: 0;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+
+        .cv-job-title {
+            font-size: 12pt;
+            color: #666;
+            margin: 5px 0 0 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .main-section-title {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #32373c;
+            text-transform: uppercase;
+            border-bottom: 2px solid #32373c;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Timeline Items */
+        .timeline-item {
+            display: grid;
+            grid-template-columns: 40mm 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .timeline-left {
+            font-size: 9pt;
+        }
+
+        .timeline-company {
+            font-weight: bold;
+            color: #000;
+            display: block;
+            text-transform: uppercase;
+        }
+
+        .timeline-location {
+            color: #666;
+            display: block;
+            font-size: 8.5pt;
+        }
+
+        .timeline-date {
+            color: #888;
+            font-style: italic;
+        }
+
+        .timeline-right {
+            border-left: 1px solid #ddd;
+            padding-left: 15px;
+        }
+
+        .timeline-role {
+            font-weight: bold;
+            color: #32373c;
+            font-size: 10pt;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .timeline-desc {
+            font-size: 9pt;
+            line-height: 1.5;
+            color: #444;
+            margin: 0;
+        }
+
+        /* Skills Progress */
+        .skills-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            column-gap: 20px;
+            row-gap: 12px;
+        }
+
+        .skill-bar-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .skill-name {
+            font-size: 8.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #555;
+        }
+
+        .skill-track {
+            height: 4px;
+            background: #eee;
+            width: 100%;
+            position: relative;
+        }
+
+        .skill-progress {
+            height: 100%;
+            background: #32373c;
+            width: 85%;
+            /* Randômico ou fixo já que não temos nível no form */
+        }
+
+        /* Tags de Habilidades no PDF */
+        .cv-skills-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .cv-skill-badge {
+            border: 1px solid #1e3a5f;
+            color: #1e3a5f;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 8pt;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h2>Gerador de Currículos Profissionais</h2>
+            <p style="color: var(--text-muted); font-size: 0.9em;">Preencha os dados abaixo e exporte um currículo
+                pronto em PDF.</p>
+        </div>
+
+        <div class="progress-container">
+            <span class="progress-text" id="progress-text">0 de 5 seções preenchidas</span>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progress-bar"></div>
+            </div>
+        </div>
+
+        <form id="cv-form" novalidate>
+            <!-- 1. Dados Pessoais -->
+            <details open class="section-details" data-section="personal">
+                <summary>1. Dados Pessoais <span class="section-status">❌</span></summary>
+                <div>
+                    <div class="photo-upload-container">
+                        <img id="photo-preview-ui" class="photo-preview" src="" alt="Sua Foto">
+                        <div id="photo-placeholder-ui" class="photo-placeholder">Sem Foto</div>
+                        <div>
+                            <label for="photo-upload" class="btn-secondary"
+                                style="display:inline-block; margin-bottom:5px;">Escolher Foto (Opcional)</label>
+                            <input type="file" id="photo-upload" accept="image/jpeg, image/png" class="hidden">
+                            <span class="char-counter" style="text-align: left;">Sugerido: Formato quadrado (1:1)</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fullName">Nome Completo *</label>
+                        <input type="text" id="fullName" name="fullName" required placeholder="Ex: João da Silva">
+                        <span class="error-msg"></span>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="email">E-mail *</label>
+                            <input type="email" id="email" name="email" required placeholder="exemplo@email.com">
+                            <span class="error-msg"></span>
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">Telefone *</label>
+                            <input type="tel" id="phone" name="phone" required placeholder="(00) 00000-0000">
+                            <span class="error-msg"></span>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="location">Cidade / Estado *</label>
+                            <input type="text" id="location" name="location" required placeholder="Ex: São Paulo, SP">
+                            <span class="error-msg"></span>
+                        </div>
+                        <div class="form-group">
+                            <label for="linkedin">LinkedIn ou Portfólio (Opcional)</label>
+                            <input type="text" id="linkedin" name="linkedin"
+                                placeholder="https://linkedin.com/in/usuario">
+                            <span class="error-msg"></span>
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <!-- 2. Objetivo Profissional -->
+            <details class="section-details" data-section="objective">
+                <summary>2. Objetivo Profissional <span class="section-status">❌</span></summary>
+                <div>
+                    <div class="form-group">
+                        <label for="objective">Resumo sobre você e seus objetivos *</label>
+                        <textarea id="objective" name="objective" required minlength="50" maxlength="500"
+                            placeholder="Descreva brevemente suas experiências, o que busca profissionalmente e como pode agregar valor à empresa..."></textarea>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span class="error-msg"></span>
+                            <span class="char-counter"><span id="obj-count">0</span>/500</span>
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <!-- 3. Formação Acadêmica -->
+            <details class="section-details" data-section="education">
+                <summary>3. Formação Acadêmica <span class="section-status">❌</span></summary>
+                <div>
+                    <div id="education-container">
+                        <!-- Itens inseridos via JS -->
+                    </div>
+                    <button type="button" class="btn-secondary" id="btn-add-education">+ Adicionar Formação</button>
+                    <span class="error-msg" id="edu-global-error"></span>
+                </div>
+            </details>
+
+            <!-- 4. Experiência Profissional -->
+            <details class="section-details" data-section="experience">
+                <summary>4. Experiência Profissional <span class="section-status">❌</span></summary>
+                <div>
+                    <div id="experience-container">
+                        <!-- Itens inseridos via JS -->
+                    </div>
+                    <button type="button" class="btn-secondary" id="btn-add-experience">+ Adicionar Experiência</button>
+                    <span class="error-msg" id="exp-global-error"></span>
+                </div>
+            </details>
+
+            <!-- 5. Habilidades -->
+            <details class="section-details" data-section="skills">
+                <summary>5. Habilidades <span class="section-status">❌</span></summary>
+                <div>
+                    <div class="form-group" style="position: relative;">
+                        <label>Principais Habilidades (Mínimo 3, Máximo 20) *</label>
+                        <div class="tags-container" id="tags-container">
+                            <!-- Tags inseridas via JS -->
+                            <input type="text" id="skill-input" class="tags-input"
+                                placeholder="Digite uma habilidade e pressione Enter" autocomplete="off">
+                        </div>
+                        <div class="suggestions" id="skill-suggestions"></div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span class="error-msg" id="skills-error"></span>
+                            <span class="char-counter"><span id="skill-count">0</span>/20</span>
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <div class="actions">
+                <button type="submit" id="btn-generate" class="btn-primary" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Gerar e Baixar PDF
+                </button>
+                <div class="grid-2">
+                    <button type="button" id="btn-clear" class="btn-outline-danger">Limpar Formulário</button>
+                    <button type="button" id="btn-preview-toggle" class="btn-secondary">Preencher com Dados de
+                        Teste</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Template Oculto para o jsPDF e html2canvas -->
+        <div id="cv-preview-wrapper">
+            <div class="cv-page" id="cv-render-target">
+                <!-- Sidebar -->
+                <aside class="cv-sidebar">
+                    <img id="pdf-photo" class="cv-photo-pdf" src="" alt="Foto de Perfil">
+
+                    <div class="sidebar-section">
+                        <h3 class="sidebar-title">Sobre Mim</h3>
+                        <p class="sidebar-text" id="pdf-objective">Texto do objetivo.</p>
+                    </div>
+
+                    <div class="sidebar-section">
+                        <h3 class="sidebar-title">Redes Sociais</h3>
+                        <ul class="sidebar-list">
+                            <li id="pdf-linkedin-container">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path
+                                        d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z">
+                                    </path>
+                                    <rect x="2" y="9" width="4" height="12"></rect>
+                                    <circle cx="4" cy="4" r="2"></circle>
+                                </svg>
+                                <span id="pdf-linkedin" style="word-break: break-all;"></span>
+                            </li>
+                        </ul>
+                    </div>
+                </aside>
+
+                <!-- Main Content -->
+                <main class="cv-main">
+                    <header class="cv-header-new">
+                        <div class="header-left">
+                            <h1 class="cv-name" id="pdf-name">NOME COMPLETO</h1>
+                            <p class="cv-job-title" id="pdf-job-title">CARGO DESEJADO</p>
+                        </div>
+                        <div class="header-right">
+                            <div class="contact-item">
+                                <span id="pdf-location">Cidade, Estado</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                    <circle cx="12" cy="10" r="3"></circle>
+                                </svg>
+                            </div>
+                            <div class="contact-item">
+                                <span id="pdf-phone">(00) 00000-0000</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path
+                                        d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.29-2.29a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <div class="contact-item">
+                                <span id="pdf-email">email@exemplo.com</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path
+                                        d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z">
+                                    </path>
+                                    <polyline points="22,6 12,13 2,6"></polyline>
+                                </svg>
+                            </div>
+                        </div>
+                    </header>
+
+                    <section>
+                        <h2 class="main-section-title">Experiência Profissional</h2>
+                        <div id="pdf-experience-list"></div>
+                    </section>
+
+                    <section>
+                        <h2 class="main-section-title">Educação</h2>
+                        <div id="pdf-education-list"></div>
+                    </section>
+
+                    <section>
+                        <h2 class="main-section-title">Competências</h2>
+                        <div class="skills-grid" id="pdf-skills-list"></div>
+                    </section>
+                </main>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Overlay de Carregamento -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <h3 style="margin:0;">Gerando PDF...</h3>
+        <p style="color:#ccc; font-size:0.9em;">Isso pode levar alguns segundos.</p>
+    </div>
+
+    <!-- 
+      INSTRUÇÕES E TECNOLOGIAS (Conforme requisitado na Entrega Esperada)
+      
+      Como usar:
+      1. Preencha todos os campos obrigatórios (marcados com *).
+      2. As seções podem ser expandidas ou recolhidas clicando em seus títulos.
+      3. Na seção Formação e Experiência, use os botões "+ Adicionar" para múltiplas entradas.
+      4. Nas habilidades, digite a tecnologia e pressione "Enter" ou "," para criar o badge. (Mínimo 3).
+      5. O botão "Gerar e Baixar PDF" só ficará ativo quando todas as 5 seções estiverem validadas (ícone ✅).
+      6. Clique no botão e o download do PDF começará automaticamente.
+
+      Tecnologias Utilizadas:
+      - HTML5 semântico
+      - CSS3 (Variáveis CSS, CSS Grid/Flexbox, Tema Light/Dark automático com prefers-color-scheme)
+      - JavaScript Vanilla (ES6+) para controle de estado, validação, DOM e LocalStorage
+      - jsPDF (CDN) para a criação do container do arquivo PDF.
+      - html2canvas (CDN) para capturar o layout HTML transformando-o em imagem para o jsPDF.
+      - Arquitetura Single-file (Autocontido, funciona offline após carregar CDNs).
+
+      Customização de Templates:
+      Para alterar o layout do currículo gerado, modifique os estilos dentro do bloco de comentários CSS 
+      que inicia com "ESTRUTURA DO PDF". O html2canvas clona a div `#cv-render-target` e seus filhos.
+      Lembre-se que as unidades preferenciais são `pt` para fontes e `mm` para tamanhos no layout do PDF.
+    -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // =========================================================
+            // ESTADO DA APLICAÇÃO
+            // =========================================================
+            const state = {
+                skills: [],
+                photoDataUrl: null,
+                validations: {
+                    personal: false,
+                    objective: false,
+                    education: false,
+                    experience: false,
+                    skills: false
+                }
+            };
+
+            const suggestionsDB = ["JavaScript", "Python", "Java", "C#", "React", "Node.js", "HTML/CSS", "SQL", "Excel", "Comunicação", "Liderança", "Trabalho em Equipe", "Gestão de Projetos", "Marketing", "Vendas", "Atendimento ao Cliente"];
+
+            // =========================================================
+            // ELEMENTOS DO DOM
+            // =========================================================
+            const form = document.getElementById('cv-form');
+            const eduContainer = document.getElementById('education-container');
+            const expContainer = document.getElementById('experience-container');
+            const btnAddEdu = document.getElementById('btn-add-education');
+            const btnAddExp = document.getElementById('btn-add-experience');
+
+            // Habilidades
+            const skillInput = document.getElementById('skill-input');
+            const tagsContainer = document.getElementById('tags-container');
+            const suggestionsDiv = document.getElementById('skill-suggestions');
+            const skillCount = document.getElementById('skill-count');
+            const skillsError = document.getElementById('skills-error');
+
+            // Foto
+            const photoUpload = document.getElementById('photo-upload');
+            const photoPreviewUI = document.getElementById('photo-preview-ui');
+            const photoPlaceholderUI = document.getElementById('photo-placeholder-ui');
+
+            // Botões e Progresso
+            const btnGenerate = document.getElementById('btn-generate');
+            const btnClear = document.getElementById('btn-clear');
+            const btnMock = document.getElementById('btn-preview-toggle');
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+
+            // Objetivo
+            const objInput = document.getElementById('objective');
+            const objCount = document.getElementById('obj-count');
+
+            // =========================================================
+            // UTILITÁRIOS
+            // =========================================================
+            const currentYear = new Date().getFullYear();
+
+            function debounce(func, timeout = 300) {
+                let timer;
+                return (...args) => {
+                    clearTimeout(timer);
+                    timer = setTimeout(() => { func.apply(this, args); }, timeout);
+                };
+            }
+
+            function generateId() {
+                return Math.random().toString(36).substr(2, 9);
+            }
+
+            // =========================================================
+            // MANIPULAÇÃO DINÂMICA (EDU E EXP)
+            // =========================================================
+            function createEduHtml(id, isFirst = false) {
+                return `
+                    <div class="dynamic-item" data-id="${id}">
+                        <div class="item-header">
+                            <h4 class="item-title">Formação Acadêmica</h4>
+                            ${!isFirst ? `<button type="button" class="btn-danger btn-remove-edu" data-id="${id}">Remover</button>` : ''}
+                        </div>
+                        <div class="form-group">
+                            <label>Curso *</label>
+                            <input type="text" class="edu-course" required placeholder="Ex: Bacharelado em Ciência da Computação">
+                            <span class="error-msg"></span>
+                        </div>
+                        <div class="form-group">
+                            <label>Instituição *</label>
+                            <input type="text" class="edu-school" required placeholder="Ex: Universidade de São Paulo (USP)">
+                            <span class="error-msg"></span>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Ano de Início *</label>
+                                <input type="number" class="edu-start" required min="1950" max="${currentYear}" placeholder="Ex: 2018">
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="form-group">
+                                <label>Ano de Conclusão *</label>
+                                <input type="text" class="edu-end" required placeholder="Ex: 2022 ou Em andamento">
+                                <span class="error-msg"></span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function createExpHtml(id, isFirst = false) {
+                return `
+                    <div class="dynamic-item" data-id="${id}">
+                        <div class="item-header">
+                            <h4 class="item-title">Experiência Profissional</h4>
+                            ${!isFirst ? `<button type="button" class="btn-danger btn-remove-exp" data-id="${id}">Remover</button>` : ''}
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Cargo *</label>
+                                <input type="text" class="exp-role" required placeholder="Ex: Desenvolvedor Front-end Senior">
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="form-group">
+                                <label>Empresa *</label>
+                                <input type="text" class="exp-company" required placeholder="Ex: Tech Solutions SA">
+                                <span class="error-msg"></span>
+                            </div>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Data de Início (Mês/Ano) *</label>
+                                <input type="text" class="exp-start" required placeholder="Ex: Jan/2020">
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="form-group">
+                                <label>Data de Fim (Mês/Ano) *</label>
+                                <input type="text" class="exp-end" required placeholder="Ex: Atual ou Dez/2023">
+                                <span class="error-msg"></span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Descrição das Atividades *</label>
+                            <textarea class="exp-desc" required placeholder="Descreva suas principais responsabilidades e conquistas..." minlength="20"></textarea>
+                            <span class="error-msg"></span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function addEducation(isFirst = false) {
+                const id = generateId();
+                eduContainer.insertAdjacentHTML('beforeend', createEduHtml(id, isFirst));
+                checkFormValidity();
+            }
+
+            function addExperience(isFirst = false) {
+                const id = generateId();
+                expContainer.insertAdjacentHTML('beforeend', createExpHtml(id, isFirst));
+                checkFormValidity();
+            }
+
+            btnAddEdu.addEventListener('click', () => addEducation(false));
+            btnAddExp.addEventListener('click', () => addExperience(false));
+
+            eduContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('btn-remove-edu')) {
+                    const id = e.target.getAttribute('data-id');
+                    document.querySelector(`.dynamic-item[data-id="${id}"]`).remove();
+                    checkFormValidity();
+                    saveToLocalStorage();
+                }
+            });
+
+            expContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('btn-remove-exp')) {
+                    const id = e.target.getAttribute('data-id');
+                    document.querySelector(`.dynamic-item[data-id="${id}"]`).remove();
+                    checkFormValidity();
+                    saveToLocalStorage();
+                }
+            });
+
+            // =========================================================
+            // SISTEMA DE TAGS (HABILIDADES)
+            // =========================================================
+            function renderTags() {
+                try {
+                    // Limpa apenas as tags existentes
+                    const tags = tagsContainer.querySelectorAll('.tag');
+                    tags.forEach(t => t.remove());
+
+                    const input = document.getElementById('skill-input');
+                    if (!input) return; // Segurança caso o elemento suma
+
+                    state.skills.forEach((skill, index) => {
+                        const tag = document.createElement('span');
+                        tag.className = 'tag';
+                        tag.innerHTML = `${skill} <span class="tag-remove" data-index="${index}">×</span>`;
+                        // Garante que o input é filho do container antes de inserir
+                        if (input.parentNode === tagsContainer) {
+                            tagsContainer.insertBefore(tag, input);
+                        } else {
+                            tagsContainer.appendChild(tag);
+                        }
+                    });
+
+                    skillCount.textContent = state.skills.length;
+                    input.style.display = state.skills.length >= 20 ? 'none' : 'block';
+
+                    validateSkills();
+                    checkFormValidity();
+                    if (!window.isClearing) saveToLocalStorage();
+                } catch (err) {
+                    console.error("Erro ao renderizar tags:", err);
+                }
+            }
+
+            function addSkill(skillStr) {
+                const skill = skillStr.trim();
+                if (skill && !state.skills.includes(skill) && state.skills.length < 20) {
+                    state.skills.push(skill);
+                    skillInput.value = '';
+                    suggestionsDiv.style.display = 'none';
+                    renderTags();
+                }
+            }
+
+            tagsContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('tag-remove')) {
+                    const index = e.target.getAttribute('data-index');
+                    state.skills.splice(index, 1);
+                    renderTags();
+                } else if (e.target === tagsContainer) {
+                    skillInput.focus();
+                }
+            });
+
+            skillInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ',') {
+                    e.preventDefault();
+                    addSkill(skillInput.value);
+                } else if (e.key === 'Backspace' && skillInput.value === '' && state.skills.length > 0) {
+                    state.skills.pop();
+                    renderTags();
+                }
+            });
+
+            skillInput.addEventListener('input', () => {
+                const val = skillInput.value.toLowerCase();
+                if (val) {
+                    const matches = suggestionsDB.filter(s => s.toLowerCase().includes(val) && !state.skills.includes(s));
+                    if (matches.length > 0) {
+                        suggestionsDiv.innerHTML = matches.map(m => `<div class="suggestion-item">${m}</div>`).join('');
+                        suggestionsDiv.style.display = 'block';
+                    } else {
+                        suggestionsDiv.style.display = 'none';
+                    }
+                } else {
+                    suggestionsDiv.style.display = 'none';
+                }
+            });
+
+            suggestionsDiv.addEventListener('click', (e) => {
+                if (e.target.classList.contains('suggestion-item')) {
+                    addSkill(e.target.textContent);
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!tagsContainer.contains(e.target) && e.target !== suggestionsDiv) {
+                    suggestionsDiv.style.display = 'none';
+                }
+            });
+
+            // =========================================================
+            // UPLOAD DE FOTO
+            // =========================================================
+            photoUpload.addEventListener('change', function (e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (event) {
+                        state.photoDataUrl = event.target.result;
+                        photoPreviewUI.src = state.photoDataUrl;
+                        photoPreviewUI.style.display = 'block';
+                        photoPlaceholderUI.style.display = 'none';
+                        saveToLocalStorage();
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // =========================================================
+            // VALIDAÇÃO EM TEMPO REAL
+            // =========================================================
+            function showError(input, message) {
+                input.classList.add('input-error');
+                const errorSpan = input.parentElement.querySelector('.error-msg');
+                if (errorSpan) errorSpan.textContent = message;
+                return false;
+            }
+
+            function clearError(input) {
+                input.classList.remove('input-error');
+                const errorSpan = input.parentElement.querySelector('.error-msg');
+                if (errorSpan) errorSpan.textContent = '';
+                return true;
+            }
+
+            function validateField(input) {
+                if (!input.hasAttribute('required') && input.value.trim() === '') {
+                    return clearError(input);
+                }
+
+                if (input.hasAttribute('required') && input.value.trim() === '') {
+                    return showError(input, 'Campo obrigatório.');
+                }
+
+                if (input.type === 'email') {
+                    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!re.test(input.value)) return showError(input, 'E-mail inválido.');
+                }
+
+                if (input.type === 'number' && input.classList.contains('edu-start')) {
+                    const year = parseInt(input.value);
+                    if (isNaN(year) || year < 1950 || year > currentYear + 5) {
+                        return showError(input, `Ano deve ser entre 1950 e ${currentYear + 5}.`);
+                    }
+                }
+
+                if (input.id === 'objective' || input.classList.contains('exp-desc')) {
+                    const min = input.getAttribute('minlength');
+                    if (input.value.length < min) {
+                        return showError(input, `Mínimo de ${min} caracteres.`);
+                    }
+                }
+
+                return clearError(input);
+            }
+
+            function validateSkills() {
+                if (state.skills.length < 3) {
+                    tagsContainer.classList.add('input-error');
+                    skillsError.textContent = 'Adicione no mínimo 3 habilidades.';
+                    return false;
+                }
+                tagsContainer.classList.remove('input-error');
+                skillsError.textContent = '';
+                return true;
+            }
+
+            // =========================================================
+            // EVENT DELEGATION (Substitui attachDynamicListeners)
+            // =========================================================
+            form.addEventListener('input', debounce((e) => {
+                if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+                    validateField(e.target);
+                    checkFormValidity();
+                    if (!window.isClearing) saveToLocalStorage();
+
+                    if (e.target.id === 'objective') {
+                        objCount.textContent = e.target.value.length;
+                    }
+                }
+            }, 500));
+
+            form.addEventListener('focusout', (e) => {
+                if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+                    validateField(e.target);
+                    checkFormValidity();
+                    if (!window.isClearing) saveToLocalStorage();
+                }
+            });
+
+            function checkSectionValidity(sectionName) {
+                let isValid = true;
+                if (sectionName === 'personal') {
+                    ['fullName', 'email', 'phone', 'location'].forEach(id => {
+                        if (!validateField(document.getElementById(id))) isValid = false;
+                    });
+                } else if (sectionName === 'objective') {
+                    if (!validateField(document.getElementById('objective'))) isValid = false;
+                } else if (sectionName === 'education') {
+                    const inputs = eduContainer.querySelectorAll('input');
+                    if (inputs.length === 0) isValid = false;
+                    inputs.forEach(input => { if (!validateField(input)) isValid = false; });
+                } else if (sectionName === 'experience') {
+                    const inputs = expContainer.querySelectorAll('input, textarea');
+                    if (inputs.length === 0) isValid = false;
+                    inputs.forEach(input => { if (!validateField(input)) isValid = false; });
+                } else if (sectionName === 'skills') {
+                    isValid = validateSkills();
+                }
+
+                state.validations[sectionName] = isValid;
+
+                // Atualiza o ícone do acordeão
+                const details = document.querySelector(`details[data-section="${sectionName}"]`);
+                const statusSpan = details.querySelector('.section-status');
+                statusSpan.textContent = isValid ? '✅' : '❌';
+
+                return isValid;
+            }
+
+            function checkFormValidity() {
+                let validCount = 0;
+                Object.keys(state.validations).forEach(section => {
+                    if (checkSectionValidity(section)) validCount++;
+                });
+
+                // Atualiza Progresso
+                progressBar.style.width = `${(validCount / 5) * 100}%`;
+                progressText.textContent = `${validCount} de 5 seções preenchidas`;
+
+                if (validCount === 5) {
+                    btnGenerate.disabled = false;
+                } else {
+                    btnGenerate.disabled = true;
+                }
+            }
+
+            // =========================================================
+            // LOCAL STORAGE
+            // =========================================================
+            function saveToLocalStorage() {
+                if (window.isClearing) return;
+                const data = {
+                    personal: {
+                        fullName: document.getElementById('fullName').value,
+                        email: document.getElementById('email').value,
+                        phone: document.getElementById('phone').value,
+                        location: document.getElementById('location').value,
+                        linkedin: document.getElementById('linkedin').value,
+                    },
+                    objective: document.getElementById('objective').value,
+                    education: Array.from(eduContainer.children).map(item => ({
+                        course: item.querySelector('.edu-course').value,
+                        school: item.querySelector('.edu-school').value,
+                        start: item.querySelector('.edu-start').value,
+                        end: item.querySelector('.edu-end').value
+                    })),
+                    experience: Array.from(expContainer.children).map(item => ({
+                        role: item.querySelector('.exp-role').value,
+                        company: item.querySelector('.exp-company').value,
+                        start: item.querySelector('.exp-start').value,
+                        end: item.querySelector('.exp-end').value,
+                        desc: item.querySelector('.exp-desc').value
+                    })),
+                    skills: state.skills,
+                    photoDataUrl: state.photoDataUrl
+                };
+                localStorage.setItem('cvBuilderData', JSON.stringify(data));
+            }
+
+            function loadFromLocalStorage() {
+                const raw = localStorage.getItem('cvBuilderData');
+                if (!raw) {
+                    // Inicializa com 1 edu e 1 exp
+                    addEducation(true);
+                    addExperience(true);
+                    return;
+                }
+
+                try {
+                    const data = JSON.parse(raw);
+
+                    if (data.personal) {
+                        document.getElementById('fullName').value = data.personal.fullName || '';
+                        document.getElementById('email').value = data.personal.email || '';
+                        document.getElementById('phone').value = data.personal.phone || '';
+                        document.getElementById('location').value = data.personal.location || '';
+                        document.getElementById('linkedin').value = data.personal.linkedin || '';
+                    }
+
+                    if (data.objective) {
+                        document.getElementById('objective').value = data.objective || '';
+                        objCount.textContent = data.objective.length;
+                    }
+
+                    if (data.education && data.education.length > 0) {
+                        data.education.forEach((edu, index) => {
+                            addEducation(index === 0);
+                            const last = eduContainer.lastElementChild;
+                            last.querySelector('.edu-course').value = edu.course;
+                            last.querySelector('.edu-school').value = edu.school;
+                            last.querySelector('.edu-start').value = edu.start;
+                            last.querySelector('.edu-end').value = edu.end;
+                        });
+                    } else { addEducation(true); }
+
+                    if (data.experience && data.experience.length > 0) {
+                        data.experience.forEach((exp, index) => {
+                            addExperience(index === 0);
+                            const last = expContainer.lastElementChild;
+                            last.querySelector('.exp-role').value = exp.role;
+                            last.querySelector('.exp-company').value = exp.company;
+                            last.querySelector('.exp-start').value = exp.start;
+                            last.querySelector('.exp-end').value = exp.end;
+                            last.querySelector('.exp-desc').value = exp.desc;
+                        });
+                    } else { addExperience(true); }
+
+                    if (data.skills) {
+                        state.skills = data.skills;
+                        renderTags();
+                    }
+
+                    if (data.photoDataUrl) {
+                        state.photoDataUrl = data.photoDataUrl;
+                        photoPreviewUI.src = state.photoDataUrl;
+                        photoPreviewUI.style.display = 'block';
+                        photoPlaceholderUI.style.display = 'none';
+                    }
+
+                    checkFormValidity();
+                } catch (e) {
+                    console.error("Erro ao carregar dados do localStorage", e);
+                    addEducation(true);
+                    addExperience(true);
+                }
+            }
+
+            btnClear.addEventListener('click', () => {
+                if (confirm('Tem certeza que deseja limpar todo o formulário?')) {
+                    window.isClearing = true;
+                    localStorage.removeItem('cvBuilderData');
+                    form.reset();
+                    eduContainer.innerHTML = '';
+                    expContainer.innerHTML = '';
+                    state.skills = [];
+                    renderTags();
+                    photoPreviewUI.style.display = 'none';
+                    photoPlaceholderUI.style.display = 'flex';
+                    state.photoDataUrl = null;
+
+                    addEducation(true);
+                    addExperience(true);
+
+                    checkFormValidity();
+
+                    // Permite salvar de novo após a limpeza
+                    setTimeout(() => { window.isClearing = false; }, 100);
+                }
+            });
+
+            // Preenchimento de Teste
+            btnMock.addEventListener('click', () => {
+                window.isClearing = true; // Previne saves múltiplos acidentais
+
+                document.getElementById('fullName').value = 'Leticia Aluno Silva';
+                document.getElementById('email').value = 'leticia@exemplo.com';
+                document.getElementById('phone').value = '(11) 98765-4321';
+                document.getElementById('location').value = 'São Paulo, SP';
+                document.getElementById('linkedin').value = 'linkedin.com/in/leticia';
+
+                document.getElementById('objective').value = 'Desenvolvedora Full-stack com mais de 5 anos de experiência na criação de soluções web escaláveis. Apaixonada por tecnologia, design responsivo e arquitetura de software limpa. Procuro oportunidades para liderar equipes técnicas em projetos inovadores.';
+                objCount.textContent = document.getElementById('objective').value.length;
+
+                // Formação
+                eduContainer.innerHTML = '';
+                addEducation(true);
+                const edu = eduContainer.lastElementChild;
+                edu.querySelector('.edu-course').value = 'Bacharelado em Engenharia de Software';
+                edu.querySelector('.edu-school').value = 'Universidade Tecnológica';
+                edu.querySelector('.edu-start').value = '2016';
+                edu.querySelector('.edu-end').value = '2020';
+
+                // Experiência
+                expContainer.innerHTML = '';
+                addExperience(true);
+                const exp = expContainer.lastElementChild;
+                exp.querySelector('.exp-role').value = 'Desenvolvedora Full-stack Pleno';
+                exp.querySelector('.exp-company').value = 'Tech Solutions SA';
+                exp.querySelector('.exp-start').value = 'Fev/2021';
+                exp.querySelector('.exp-end').value = 'Atual';
+                exp.querySelector('.exp-desc').value = 'Criação de aplicações web robustas e escaláveis, utilizando Node.js e React. Responsável por implementar arquitetura limpa e testes automatizados, elevando a cobertura para 85%.';
+
+                state.skills = ["JavaScript", "HTML/CSS", "React", "Node.js", "SQL"];
+                renderTags();
+
+                checkFormValidity();
+
+                setTimeout(() => {
+                    window.isClearing = false;
+                    saveToLocalStorage();
+                }, 100);
+            });
+
+            // =========================================================
+            // GERAÇÃO DO PDF
+            // =========================================================
+            function populatePreview() {
+                // Nome e Título
+                const fullName = document.getElementById('fullName').value;
+                document.getElementById('pdf-name').textContent = fullName;
+
+                // Tenta pegar o cargo mais recente da primeira experiência
+                const firstExp = expContainer.querySelector('.exp-role');
+                document.getElementById('pdf-job-title').textContent = (firstExp && firstExp.value) ? firstExp.value : 'Profissional';
+
+                // Contatos (Header Right)
+                document.getElementById('pdf-email').textContent = document.getElementById('email').value;
+                document.getElementById('pdf-phone').textContent = document.getElementById('phone').value;
+                document.getElementById('pdf-location').textContent = document.getElementById('location').value;
+
+                // LinkedIn (Sidebar)
+                const lnk = document.getElementById('linkedin').value;
+                const pdfLnk = document.getElementById('pdf-linkedin');
+                const pdfLnkContainer = document.getElementById('pdf-linkedin-container');
+                if (lnk) {
+                    pdfLnk.textContent = lnk.replace('https://', '').replace('www.', '');
+                    pdfLnkContainer.style.display = 'flex';
+                } else {
+                    pdfLnkContainer.style.display = 'none';
+                }
+
+                // Foto (Sidebar)
+                const photoPdf = document.getElementById('pdf-photo');
+                if (state.photoDataUrl) {
+                    photoPdf.src = state.photoDataUrl;
+                    photoPdf.style.display = 'block';
+                } else {
+                    photoPdf.style.display = 'none';
+                }
+
+                // Sobre Mim (Sidebar)
+                document.getElementById('pdf-objective').textContent = document.getElementById('objective').value;
+
+                // Experiência (Main - Timeline)
+                const pdfExpList = document.getElementById('pdf-experience-list');
+                pdfExpList.innerHTML = '';
+                Array.from(expContainer.children).forEach(item => {
+                    const role = item.querySelector('.exp-role').value;
+                    const company = item.querySelector('.exp-company').value;
+                    const start = item.querySelector('.exp-start').value;
+                    const end = item.querySelector('.exp-end').value;
+                    const desc = item.querySelector('.exp-desc').value;
+
+                    pdfExpList.innerHTML += `
+                        <div class="timeline-item">
+                            <div class="timeline-left">
+                                <span class="timeline-company">${company}</span>
+                                <span class="timeline-date">${start} – ${end}</span>
+                            </div>
+                            <div class="timeline-right">
+                                <span class="timeline-role">${role}</span>
+                                <p class="timeline-desc">${desc.replace(/\n/g, '<br>')}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // Educação (Main - Timeline)
+                const pdfEduList = document.getElementById('pdf-education-list');
+                pdfEduList.innerHTML = '';
+                Array.from(eduContainer.children).forEach(item => {
+                    const course = item.querySelector('.edu-course').value;
+                    const school = item.querySelector('.edu-school').value;
+                    const start = item.querySelector('.edu-start').value;
+                    const end = item.querySelector('.edu-end').value;
+
+                    pdfEduList.innerHTML += `
+                        <div class="timeline-item">
+                            <div class="timeline-left">
+                                <span class="timeline-company">${school}</span>
+                                <span class="timeline-date">${start} – ${end}</span>
+                            </div>
+                            <div class="timeline-right">
+                                <span class="timeline-role">${course}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // Skills (Main - Bars)
+                const pdfSkillsList = document.getElementById('pdf-skills-list');
+                pdfSkillsList.innerHTML = '';
+                state.skills.forEach((skill, index) => {
+                    // Mockando larguras para efeito visual premium (80% a 95%)
+                    const widths = ['95%', '85%', '90%', '80%', '88%'];
+                    const width = widths[index % widths.length];
+
+                    pdfSkillsList.innerHTML += `
+                        <div class="skill-bar-item">
+                            <span class="skill-name">${skill}</span>
+                            <div class="skill-track">
+                                <div class="skill-progress" style="width: ${width}"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                checkFormValidity();
+
+                if (btnGenerate.disabled) {
+                    alert("Por favor, preencha todos os campos corretamente.");
+                    return;
+                }
+
+                const loading = document.getElementById('loading-overlay');
+                loading.classList.add('active');
+
+                try {
+                    // Preenche o template escondido
+                    populatePreview();
+
+                    // Timeout para garantir que a DOM atualizou e as imagens (foto) renderizaram
+                    await new Promise(r => setTimeout(r, 500));
+
+                    const element = document.getElementById('cv-render-target');
+
+                    // html2canvas config
+                    const canvas = await html2canvas(element, {
+                        scale: 2, // Maior resolução
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: '#ffffff'
+                    });
+
+                    const imgData = canvas.toDataURL('image/jpeg', 1.0);
+
+                    // jsPDF config (Portrait, mm, A4)
+                    const jspdfLib = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+                    if (!jspdfLib) throw new Error("Biblioteca jsPDF não carregada corretamente.");
+
+                    const pdf = new jspdfLib('p', 'mm', 'a4');
+
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+                    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+
+                    // Nome do arquivo seguro (sem acentos ou caracteres especiais)
+                    const rawName = document.getElementById('fullName').value || 'curriculo';
+                    const safeName = rawName.normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, "")
+                        .replace(/[^a-z0-9]/gi, '_')
+                        .toLowerCase();
+                    const year = new Date().getFullYear();
+
+                    const fileName = `curriculo_${safeName}_${year}.pdf`;
+
+                    // Para resolver a falha de nomeação do navegador ou gerenciadores de download,
+                    // utilizamos um Blob nativo e forçamos a limpeza do link.
+                    const blob = pdf.output('blob');
+                    const blobUrl = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.style.display = 'none';
+                    link.href = blobUrl;
+                    link.download = fileName;
+
+                    document.body.appendChild(link);
+                    link.click();
+
+                    // Limpeza imediata
+                    setTimeout(() => {
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(blobUrl);
+                    }, 200);
+
+                } catch (error) {
+                    console.error("Erro ao gerar PDF:", error);
+                    alert("Ocorreu um erro ao gerar o PDF. Verifique o console.");
+                } finally {
+                    loading.classList.remove('active');
+                }
+            });
+
+            // =========================================================
+            // INICIALIZAÇÃO
+            // =========================================================
+            loadFromLocalStorage();
+
+            // Conta inicial para textareas (se viemos do localStorage)
+            if (document.getElementById('objective').value) {
+                objCount.textContent = document.getElementById('objective').value.length;
+            }
+
+        });
+    </script>
+</body>
+
+</html>
