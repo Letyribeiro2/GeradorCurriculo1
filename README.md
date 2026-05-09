@@ -36,4 +36,4 @@ Um aplicativo web moderno, rápido e autocontido para criação de currículos p
 - `index.html`: Contém toda a estrutura, estilos (CSS) e lógica (JS) do aplicativo. É o único arquivo necessário para rodar a aplicação.
 
 ---
-Desenvolvido com foco em simplicidade e elegância. 💼
+Desenvolvido por Leticia Ribeiro de Souza - Linkedin 
